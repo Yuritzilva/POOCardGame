@@ -1,0 +1,1 @@
+#gameRule class

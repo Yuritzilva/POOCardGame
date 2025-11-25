@@ -1,0 +1,1 @@
+/*Contains the queries that create the tables in the database*/
