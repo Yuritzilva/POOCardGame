@@ -19,10 +19,12 @@ CREATE TABLE IF NOT EXISTS Plays (
     play_id INT AUTO_INCREMENT PRIMARY KEY,
     game_id INT,
     player_id INT,
+    hand_id INT,
     play_action VARCHAR(50),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (game_id) REFERENCES Game(game_id),
-    FOREIGN KEY (player_id) REFERENCES Player(player_id)
+    FOREIGN KEY (player_id) REFERENCES Player(player_id),
+    FOREIGN KEY (hand_id)   REFERENCES Hand(hand_id)
 );
 
 CREATE TABLE IF NOT EXISTS Cards (
