@@ -41,8 +41,6 @@ def test_deck_initialization():
     print("=== TEST: Deck Initialization ===")
     try:
         deck = Deck(1, "English")
-        print(f"Deck created: {deck.deck_type}")
-        print(f" Total cards: {deck.total_cards}")
         print(f" Undealt cards: {len(deck.undealt_cards)}")
         print(f" Is shuffled: {deck.is_shuffled}")
         
@@ -69,7 +67,7 @@ def test_deck_shuffling():
         
         # Check if order is not the same as the original order
         if original_order != new_order:
-            print("✅ Deck successfully shuffled")
+            print("Deck successfully shuffled")
         else:
             print("Deck order may not have changed")
             
@@ -125,6 +123,7 @@ def test_hand_management():
         
         print(f"Hand has {len(hand.cards)} cards: {hand}")
         
+        print("Now let's add a third card")
         # Add another card (3 cards in a hand should fail)
         third_card = deck.deal_card()
         hand.add_card(third_card)  # Shows error
@@ -142,11 +141,11 @@ def run_tests():
     print("Executing...\n")
     
     #test_card_creation()
-    insert_english_deck()
+    #insert_english_deck()
     #test_deck_initialization() 
     #test_deck_shuffling()
     #test_card_dealing()
-    #test_hand_management()
+    test_hand_management()
     
     print("Test completed")
 
