@@ -1,6 +1,5 @@
 #Card class
-import paths
-from mysql.queries import INSERT_CARD
+from queries import INSERT_CARD
 from db_connection import get_conn
 class Card:
     def __init__(self, id_, value, suit):
