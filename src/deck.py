@@ -7,10 +7,10 @@ class Deck:
         self.id = id_
         self.is_shuffled = False
         self.total_cards = 0
-        self.load_cards_from_db()
+        self.deck_type = deck_type
         self.undealt_cards = []
         self.dealt_cards = 0
-        self.deck_type = deck_type
+        self.load_cards_from_db()
 
     def load_cards_from_db(self):
         conn = get_conn()
