@@ -8,7 +8,14 @@ class Card:
         self.suit = suit
         
     def __str__(self):
-        return f"{self.value}{self.suit}"
+        suit_symbols = {
+        'Hearts': '♥',
+        'Diamonds': '♦', 
+        'Clubs': '♣',
+        'Spades': '♠'
+        }
+        symbol = suit_symbols.get(self.suit, self.suit)
+        return f"{self.value}{symbol}"
 
     def __repr__(self):
         return self.__str__()
@@ -20,7 +27,7 @@ class Card:
         try:
             cur = conn.cursor()
             cur.execute(
-                INSERT_CARD
+                INSERT_CARD,(suit, value)
             )
             conn.commit()
             card_id = cur.lastrowid
