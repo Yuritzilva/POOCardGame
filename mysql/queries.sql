@@ -1,1 +1,0 @@
-/*Contains queries used in the program*/
