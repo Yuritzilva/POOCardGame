@@ -43,7 +43,7 @@ class Deck:
             if len(self.undealt_cards) != expected_count:
                 print(f"Warning! \n Loaded cards: {len(self.undealt_cards)} \n Cards expected: {expected_count}")
                 
-            print(f"Current deck: ({self.deck_type})\n Total cards{len(self.undealt_cards)}")
+            print(f"Current deck: ({self.deck_type})\n Total cards: {len(self.undealt_cards)}")
             self.total_cards = len(self.undealt_cards)
 
         except Exception as e:
