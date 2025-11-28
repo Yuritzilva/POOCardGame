@@ -123,27 +123,34 @@ class Game:
     
     def record_player_action(self, player, action, amount=0):
         """Record player action"""
+        from datetime import datetime
         action_record = {
             'player': player,
-            'action': action,  # 'bet', 'fold', 'check', 'raise'
+            'action': action, 
             'amount': amount,
             'round': self.current_round,
+            'timestamp': datetime.now().strftime("%H:%M:%S")
         }
         self.player_actions.append(action_record)
         
         # Save in Plays
         self._save_play_to_db(player, action, amount)
         
-        print(f"Saved: {player.name} -> {action} \n Bet: ${amount}")
+        print(f"Saved: {player.name} -> {action} \n Bet: ${amount} \n(round {self.current_round})")
     
     def _save_play_to_db(self, player, action, amount):
         """Save recorded action in DB"""
         from db_connection import get_conn
-        from queries import INSERT_PLAY
+        from queries import INSERT_PLAY, SELECT_HAND_ID
         conn = get_conn()
         try:
             cur = conn.cursor()
             # using hand_id of current player
+            cur.execute(SELECT_HAND_ID, (self.game_id, player.id, hand_id, f"{action}:${amount}"))
+            result = cur.fetchone()
+
+            hand_id = result[0] if result else None
+
             cur.execute(INSERT_PLAY,(self.game_id, player.id, f"{action}:${amount}"))
             conn.commit()
         except Exception as e:

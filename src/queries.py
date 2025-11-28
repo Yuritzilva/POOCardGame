@@ -26,9 +26,9 @@ ADD_WINNER = "UPDATE Game SET winner_id = %s WHERE game_id = %s"
 
 #HAND QUERIES
 INSERT_HAND = "INSERT INTO Hand (game_id, player_id) VALUES (%s, %s)"
-
+SELECT_HAND_ID = "SELECT hand_id FROM Hand WHERE game_id = %s AND player_id = %s ORDER BY hand_id DESC LIMIT 1"
 #PLAYERHAND QUERIES
 INSERT_CARDS_IN_HAND = "INSERT INTO PlayerHandCards (hand_id, card_id) VALUES (%s, %s)"
 
 #PLAYS QUERIES
-INSERT_PLAY = "INSERT INTO Plays (game_id, player_id, play_action) VALUES (%s, %s, %s)"
+INSERT_PLAY = "INSERT INTO Plays (game_id, player_id, hand_id, play_action) VALUES (%s, %s, %s, %s)"
