@@ -107,7 +107,7 @@ class Game:
             elif self.current_round == 4:  # Showdown: determinate winner
                 self._determine_winner()
                 self.is_active = False
-            
+                return False    
             print(f"Round: {round_names[self.current_round]}")
             return True
         
@@ -163,7 +163,9 @@ class Game:
         print(f"   Folded players: {[p.name for p in self.players if p.folded]}")
 
         if len(active_players) == 0:
-            print("No active players!")
+            print("No active players!") 
+            if hasattr(self, 'lbl_help'):
+                self.lbl_help.config(text="All players folded, no winners")
             return
         
         if len(active_players) == 1:
@@ -173,6 +175,8 @@ class Game:
             self.winners = [winner]
             self._update_winner_in_db(winner)
             print(f"Winner: {winner.name} - Prize: ${self.pot}")
+            if hasattr(self, 'lbl_help'):
+                self.lbl_help.config(text=f"{winner.name} Wins ${self.pot} (All folded)")
             return
 
         #2 or more active players
@@ -194,14 +198,24 @@ class Game:
         
         # Distribute pot and points
         prize_per_winner = self.pot / len(winners)
+
+        winner_names = []
         for player, hand_value in winners:
             player.add_winnings(prize_per_winner, hand_value)
             self.winners.append(player)
+            winner_names.append(player.name)
         
         # update winners
         self._update_winner_in_db(winners[0][0])  # Use first winner as reference
-        
         print(f"Winners: {[w.name for w in self.winners]} - Prize: ${prize_per_winner} each")
+        if hasattr(self, 'lbl_help'):
+            if len(winners) == 1:
+                winner = winners[0][0]
+                hand_name = GameRule.evaluate_hand(winner.hand, self.community_cards).name
+                self.lbl_help.config(text=f"{winner.name} wins ${prize_per_winner:.0f} with {hand_name}!")
+            else:
+                winners_text = ", ".join(winner_names)
+                self.lbl_help.config(text=f"{winners_text} win ${prize_per_winner:.0f} each")
     
     def _update_winner_in_db(self, winner):
         """Update game with winner (player) in DB"""

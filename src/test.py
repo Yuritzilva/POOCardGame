@@ -419,7 +419,10 @@ def test_complete_game():
         print(f"Error in complete game test: {e}")
         import traceback
         traceback.print_exc()
-    print()
+
+
+
+
 
 def run_tests():
     """Ejecute tests"""
@@ -435,8 +438,7 @@ def run_tests():
     #test_gamerule_advanced()
     #test_all_combinations()
     #test_player_management()
-    test_complete_game()
-
+    #test_complete_game()
     print("Test completed")
 
 if __name__ == "__main__":

@@ -47,9 +47,9 @@ class Player:
         """Add winning stats to the player"""
         self.balance += amount 
         self.points += hand_value 
+        #print(f" === WINNER === \n {self.name} \n === BALANCE === \n {amount} \n === POINTS === \n {hand_value} \n")
         self._update_balance_in_db()
-        print(f" === WINNER === \n {self.name} \n === BALANCE === \n {amount} \n === POINTS === \n {hand_value} \n")
-    
+
     def place_bet(self, amount):
         """Make bet"""
         if amount > self.balance:
@@ -59,6 +59,8 @@ class Player:
         self.balance -= amount
         self.current_bet += amount
         self.total_bet += amount
+
+        self._update_balance_in_db()
         return amount
     
     def fold(self):
@@ -88,15 +90,38 @@ class Player:
         conn = get_conn()
         try:
             cur = conn.cursor()
-            cur.execute(UPDATE_PLAYER_BALANCE,(self.balance, self.points, self.id))
+            print(f"🔧 EJECUTANDO QUERY: {UPDATE_PLAYER_BALANCE}")
+            print(f"   Parámetros: balance={self.balance}, points={self.points}, id={self.id}")
+            
+            cur.execute(UPDATE_PLAYER_BALANCE, (self.balance, self.points, self.id))
             conn.commit()
-        except:
+            print(f"BD ACTUALIZADA: {self.name}")
+            
+        except Exception as e:
+            print(f"ERROR en BD: {e}")
             conn.rollback()
         finally:
             cur.close()
             conn.close()
     
+    @classmethod
+    def get_all_players(cls):
+        """Get all players info"""
+        from db_connection import get_conn
+        from queries import ALL_PLAYERS
+        conn = get_conn()
+        try:
+            cur = conn.cursor()
+            cur.execute(ALL_PLAYERS)
+            rows = cur.fetchall()
+            return [cls(row[0], row[1], float(row[2])) for row in rows]
+        finally:
+            cur.close()
+            conn.close()
+
     def __str__(self):
         cards_str = " ".join(str(card) for card in self.hand)
         status = "FOLDED" if self.folded else f" Balance: ${self.balance}"
         return f"{self.name} - {cards_str} - {status}"
+    
+    

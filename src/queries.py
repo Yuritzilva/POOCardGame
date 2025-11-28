@@ -19,7 +19,7 @@ GET_CARD_BY_ID = "SELECT card_id, card_value, suit FROM Cards WHERE card_id = %s
 LOAD_PLAYER = "SELECT player_id, player_name, player_balance FROM Player WHERE player_id = %s"
 INSERT_PLAYER = "INSERT INTO Player (player_name, player_balance) VALUES (%s, %s)"
 UPDATE_PLAYER_BALANCE = "UPDATE Player SET player_balance = %s, player_points = %s WHERE player_id = %s"
-
+ALL_PLAYERS = "SELECT player_id, player_name, player_balance FROM Player"
 #GAME QUERIES
 START_GAME = "INSERT INTO Game () VALUES ()"
 ADD_WINNER = "UPDATE Game SET winner_id = %s WHERE game_id = %s"
