@@ -374,6 +374,52 @@ def test_player_management():
         import traceback
         traceback.print_exc()
     
+def test_complete_game():
+    """Simulate a poker game"""
+    print("=== TEST: Complete Poker Game ===")
+    try:
+        from player import Player
+        from game import Game
+        
+        # Create player
+        player1 = Player.set_player("Yupo", 1000)
+        player2 = Player.set_player("Ivanana", 1000)
+        player3 = Player.set_player("Pondo", 1000)
+        
+        players = [player1, player2, player3]
+        
+        # Create and start game
+        game = Game(players=players)
+        game.start_game()
+        
+        # Simulate rounds
+        print("\nSimulating betting round...")
+        game.record_player_action(player1, "bet", 50)
+        game.record_player_action(player2, "call", 50)
+        game.record_player_action(player3, "fold", 0)
+        game.pot = 100  # Simulate pot 
+        
+        # Next round
+        for round_num in range(4):
+            print(f"\nRound {round_num + 1}")
+            if game.next_round():
+                print(f"   Community cards: {[str(c) for c in game.community_cards]}")
+            else:
+                print("   Game finished!")
+        
+        # Show results
+        history = game.get_game_history()
+        print(f"Game History:")
+        print(f"   Winners: {history['winners']}")
+        print(f"   Final Pot: ${history['pot']}")
+        
+        print("Complete game simulation successful")
+        
+    except Exception as e:
+        print(f"Error in complete game test: {e}")
+        import traceback
+        traceback.print_exc()
+    print()
 
 def run_tests():
     """Ejecute tests"""
@@ -388,7 +434,8 @@ def run_tests():
     #test_gamerule_basic()
     #test_gamerule_advanced()
     #test_all_combinations()
-    test_player_management()
+    #test_player_management()
+    test_complete_game()
 
     print("Test completed")
 
