@@ -1067,46 +1067,73 @@ def delete_player():
 
     pick_single_player(_delete)
 
+    
+def create_player():
+    """Create a new player"""
 
-    
-    # Game info
-    info_frame = ttk.Frame(content_frame)
-    info_frame.pack(pady=5, fill="x")
-    
-    ttk.Label(info_frame, text=f"Game ID: {current_game.game_id}", style="white.TLabel").pack()
-    ttk.Label(info_frame, text=f"Pot: ${current_game.pot}", style="white.TLabel").pack()
-    ttk.Label(info_frame, text=f"Round: {['Pre-flop', 'Flop', 'Turn', 'River', 'Showdown'][current_game.current_round]}", 
-              style="white.TLabel").pack()
-    
-    # Community cards
-    ttk.Label(content_frame, text="Community Cards:", style="white.TLabel").pack(anchor="w", pady=(10,0))
-    cards_text = " ".join(str(card) for card in current_game.community_cards) if current_game.community_cards else "None yet"
-    ttk.Label(content_frame, text=cards_text, style="white.TLabel").pack(anchor="w")
-    
-    # Player actions history
-    ttk.Label(content_frame, text="Player Actions:", style="white.TLabel").pack(anchor="w", pady=(10,0))
-    
-    # Scroll
-    scroll_frame = ttk.Frame(content_frame)
-    scroll_frame.pack(fill="both", expand=True, pady=5)
-    
-    canvas = tk.Canvas(scroll_frame, bg="#333333", highlightthickness=0, height=200)
-    scrollbar = ttk.Scrollbar(scroll_frame, orient="vertical", command=canvas.yview)
-    scrollable_frame = ttk.Frame(canvas)
-    
-    scrollable_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-    canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-    canvas.configure(yscrollcommand=scrollbar.set)
-    
-    canvas.pack(side="left", fill="both", expand=True)
-    scrollbar.pack(side="right", fill="y")
-    
-    # Display actions
-    for i, action in enumerate(current_game.player_actions):
-        round_name = ['Pre-flop', 'Flop', 'Turn', 'River', 'Showdown'][action['round']]
-        action_text = f"{action['player'].name} {action['action'].upper()} ${action['amount']} ({round_name})"
-        ttk.Label(scrollable_frame, text=action_text, style="white.TLabel").pack(anchor="w", padx=5, pady=2)
-    
+    clear_content_frame()
+
+    # Title
+    title_label = ttk.Label(content_frame, text="CREATE NEW PLAYER",
+                            style="yellow.TLabel", font=("Segoe UI", 12, "bold"))
+    title_label.pack(pady=10)
+
+    # Form frame
+    form_frame = ttk.Frame(content_frame)
+    form_frame.pack(pady=20)
+
+    # Name
+    ttk.Label(form_frame, text="Player Name:", style="white.TLabel").grid(
+        row=0, column=0, sticky="w", padx=5, pady=5
+    )
+
+    name_entry = ttk.Entry(form_frame, width=20, font=("Segoe UI", 10))
+    name_entry.grid(row=0, column=1, padx=5, pady=5)
+    name_entry.focus()
+
+    # Initial balance
+    ttk.Label(form_frame, text="Initial Balance ($):", style="white.TLabel").grid(
+        row=1, column=0, sticky="w", padx=5, pady=5
+    )
+
+    balance_entry = ttk.Entry(form_frame, width=20, font=("Segoe UI", 10))
+    balance_entry.grid(row=1, column=1, padx=5, pady=5)
+    balance_entry.insert(0, "100.00")  # default
+
+    # Button frame
+    btn_frame = ttk.Frame(content_frame)
+    btn_frame.pack(pady=15)
+
+    def submit_new_player():
+        name = name_entry.get().strip()
+        balance_text = balance_entry.get().strip()
+
+        if not name:
+            tk.messagebox.showerror("Error", "Player name is required.")
+            return
+
+        try:
+            balance = float(balance_text)
+        except ValueError:
+            tk.messagebox.showerror("Error", "Balance must be a number.")
+            return
+
+        # Create player using your class method
+        try:
+            new_player = Player.set_player(name, balance)
+        except Exception as e:
+            tk.messagebox.showerror("Database Error", str(e))
+            return
+
+        tk.messagebox.showinfo("Success", f"Player '{name}' created successfully!")
+        clear_content_frame()
+
+    create_btn = ttk.Button(btn_frame, text="Create Player", command=submit_new_player)
+    create_btn.pack(side="left", padx=5)
+
+    back_btn = ttk.Button(btn_frame, text="Back", command=clear_content_frame)
+    back_btn.pack(side="left", padx=5)
+
 
 # Define window
 root = tk.Tk()
@@ -1123,6 +1150,7 @@ menubar = tk.Menu(root)
 
 #player options
 player_menu = tk.Menu(menubar, tearoff=0)
+player_menu.add_command(label="Add player", command=create_player)
 player_menu.add_command(label="Modify balance", command=modify_player_balance)
 player_menu.add_command(label="Show player information", command=show_player_info)
 player_menu.add_command(label="Delete player", command=delete_player)
