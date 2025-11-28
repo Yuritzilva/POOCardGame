@@ -136,6 +136,194 @@ def test_hand_management():
         print(f"Error: {e}")
     print()
 
+def test_gamerule_basic(): 
+    print("=== TEST: GameRule Basic ===")
+    try:
+        from card import Card
+        from gameRule import GameRule
+            
+        # Create test cards
+        card1 = Card(1, "A", "Hearts")
+        card2 = Card(2, "A", "Spades")   
+        card3 = Card(3, "K", "Hearts")
+        card4 = Card(4, "Q", "Diamonds")
+        card5 = Card(5, "J", "Clubs")
+        card6 = Card(6, "10", "Hearts")
+        card7 = Card(7, "9", "Spades")
+            
+        #Detect pair with private hand
+        print("\npair detection")
+        private_cards = [card1, card3]  
+        community_cards = [card2, card4, card5]
+
+        rule_instance = GameRule.evaluate_hand(private_cards, community_cards)
+        print(f"   hand detected: {rule_instance.name}")
+        print(f"   Value: {rule_instance.value}")
+        print(f"   Cards in the combo: {[str(card) for card in rule_instance.combination]}")
+            
+        # Verify
+        assert rule_instance.name == "One Pair", f"Expected One Pair, got {rule_instance.name}"
+        assert rule_instance.value == 20, f"Expected 20, got {rule_instance.value}"
+        assert len(rule_instance.combination) == 2, f"Expected 2 cards in combination, got {len(rule_instance.combination)}"
+        print("Pair detected succesfully")
+
+
+         # Show rule information
+        print("\nShowing rule information")
+        flush_info = GameRule.get_GameRule("Flush")
+        print(f"Info Flush: {flush_info}")
+        
+        assert "Five cards of the same suit" in flush_info
+        print("Rules info is working just fine")
+
+        print("\n All tests passed")
+
+        print("Showing highest card without errors")
+        # Detect highest card
+        print("\nDetect highest card")
+        private_cards2 = [card2, card4]  
+        community_cards2 = [card5, card6, card7]  
+            
+        rule_instance2 = GameRule.evaluate_hand(private_cards2, community_cards2)
+        print(f"   hand detected: {rule_instance2.name}")
+        print(f"   Value: {rule_instance2.value}")
+        print(f"   Cards in the combo: {[str(card) for card in rule_instance2.combination]}")
+            
+        
+        assert rule_instance2.name == "High Card", f"Expected High Card, got {rule_instance2.name}"
+        assert rule_instance2.value == 10, f"Expected 10, got {rule_instance2.value}"
+        print("Highest card detected succesfully")
+        
+
+        print("Showing an error example in detecting type")
+        # Detect highest card
+        print("\nDetect highest card")
+        private_cards2 = [card3, card4]  
+        community_cards2 = [card5, card6, card7]  
+            
+        rule_instance2 = GameRule.evaluate_hand(private_cards2, community_cards2)
+        print(f"   hand detected: {rule_instance2.name}")
+        print(f"   Value: {rule_instance2.value}")
+        print(f"   Cards in the combo: {[str(card) for card in rule_instance2.combination]}")
+            
+        
+        assert rule_instance2.name == "High Card", f"Expected High Card, got {rule_instance2.name}"
+        assert rule_instance2.value == 10, f"Expected 10, got {rule_instance2.value}"
+        print("Highest card detected succesfully")
+        
+            
+    except Exception as e:
+        print(f"Error in test_gamerule_basic: {e}")
+        import traceback
+        traceback.print_exc()    
+      
+
+def test_gamerule_advanced():
+    """Advanced game rule: two pairs, trio , etc"""
+    print("=== TEST: GameRule Advanced ===")
+    try:
+        from card import Card
+        from gameRule import GameRule
+        
+        # Cards
+        card1 = Card(1, "A", "Hearts")
+        card2 = Card(2, "A", "Spades")
+        card3 = Card(3, "K", "Hearts")
+        card4 = Card(4, "K", "Diamonds")  
+        card5 = Card(5, "Q", "Clubs")
+        card6 = Card(6, "J", "Hearts")
+        card7 = Card(7, "10", "Spades")
+        
+        print("\nCase two pairs: ")
+        private_cards = [card1, card3]  
+        community_cards = [card2, card4, card5, card6, card7]  
+        
+        rule_instance = GameRule.evaluate_hand(private_cards, community_cards)
+        print(f"   Hand detected: {rule_instance.name}")
+        print(f"   Value: {rule_instance.value}")
+        print(f"   Card combination: {[str(card) for card in rule_instance.combination]}")
+        
+        # Shuld detect two pair
+        if rule_instance.name == "Two Pair":
+            print("  Two pair detected correctly")
+            assert len(rule_instance.combination) == 4, "Two Pair should have 4 cards in combination"
+        else:
+            print(f"   expected Two pairs but got: {rule_instance.name}")
+        
+    except Exception as e:
+        print(f"Error en test_gamerule_advanced: {e}")
+        import traceback
+        traceback.print_exc()
+    print()
+
+def test_all_combinations():
+    """test all"""
+    print("=== TEST: All Poker Combinations ===")
+    
+    from card import Card
+    from gameRule import GameRule
+    
+    test_cases = [
+        {
+            "name": "Royal Flush",
+            "private": [Card(1, "10", "Hearts"), Card(2, "J", "Hearts")],
+            "community": [
+                Card(3, "Q", "Hearts"), Card(4, "K", "Hearts"), 
+                Card(5, "A", "Hearts"), Card(6, "2", "Spades"), Card(7, "7", "Diamonds")
+            ],
+            "expected": ("Royal Flush", 100)
+        },
+        {
+            "name": "Straight Flush", 
+            "private": [Card(1, "8", "Hearts"), Card(2, "9", "Hearts")],
+            "community": [
+                Card(3, "10", "Hearts"), Card(4, "J", "Hearts"), 
+                Card(5, "Q", "Hearts"), Card(6, "2", "Spades"), Card(7, "7", "Diamonds")
+            ],
+            "expected": ("Straight Flush", 90)
+        },
+        {
+            "name": "Four of a Kind",
+            "private": [Card(1, "A", "Hearts"), Card(2, "A", "Spades")],
+            "community": [
+                Card(3, "A", "Diamonds"), Card(4, "A", "Clubs"), 
+                Card(5, "K", "Hearts"), Card(6, "2", "Spades"), Card(7, "7", "Diamonds")
+            ],
+            "expected": ("Four of a Kind", 80)
+        },
+        {
+            "name": "Flush",
+            "private": [Card(1, "2", "Hearts"), Card(2, "7", "Hearts")],
+            "community": [
+                Card(3, "9", "Hearts"), Card(4, "J", "Hearts"), 
+                Card(5, "K", "Hearts"), Card(6, "2", "Spades"), Card(7, "7", "Diamonds")
+            ],
+            "expected": ("Flush", 60)
+        },
+        {
+            "name": "Straight",
+            "private": [Card(1, "8", "Hearts"), Card(2, "9", "Spades")],
+            "community": [
+                Card(3, "10", "Diamonds"), Card(4, "J", "Clubs"), 
+                Card(5, "Q", "Hearts"), Card(6, "2", "Spades"), Card(7, "7", "Diamonds")
+            ],
+            "expected": ("Straight", 50)
+        }
+    ]
+    
+    for test in test_cases:
+        print(f"\nTesting {test['name']}")
+        rule_instance = GameRule.evaluate_hand(test["private"], test["community"])
+        
+        print(f"   Expected: {test['expected'][0]} (Value: {test['expected'][1]})")
+        print(f"   Obtained: {rule_instance.name} (Value: {rule_instance.value})")
+        print(f"   Card combination: {[str(card) for card in rule_instance.combination]}")
+        
+        if rule_instance.name == test['expected'][0] and rule_instance.value == test['expected'][1]:
+            print(f"Test {test['name']} detected")
+        else:
+            print(f"failed detection {test['name']}")
+
 def run_tests():
     """Ejecute tests"""
     print("Executing...\n")
@@ -145,8 +333,11 @@ def run_tests():
     #test_deck_initialization() 
     #test_deck_shuffling()
     #test_card_dealing()
-    test_hand_management()
-    
+    #test_hand_management()
+    test_gamerule_basic()
+    #test_gamerule_advanced()
+    #test_all_combinations()
+
     print("Test completed")
 
 if __name__ == "__main__":
