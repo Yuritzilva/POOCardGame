@@ -10,6 +10,7 @@ from game import Game
 from hand import Hand
 from gameRule import GameRule
 
+current_game = None
 # Functions
 def start_game():
     """Show form before creating game"""
@@ -262,23 +263,163 @@ def update_actions_display():
     else:
         lbl_help.config(text=f"{current_player.name}'s turn - Choose an action")
 
-def show_game_history():
-    pass
-
 def show_all_games():
-    pass
+    """Show history of all previous games"""
+    clear_content_frame()
+    
+    # Title
+    title_label = ttk.Label(content_frame, text="GAME HISTORY", 
+                           style="yellow.TLabel", font=("Segoe UI", 12, "bold"))
+    title_label.pack(pady=10)
+    
+    # Query to get game history
+    games = load_game_history_from_db()
+    
+    if not games:
+        no_games_label = ttk.Label(content_frame, 
+                                  text="No previous games found", 
+                                  style="white.TLabel")
+        no_games_label.pack(pady=10)
+        return
+    
+    # Create scrollable frame
+    scroll_frame = ttk.Frame(content_frame)
+    scroll_frame.pack(fill="both", expand=True, pady=5)
+    
+    canvas = tk.Canvas(scroll_frame, bg="#333333", highlightthickness=0)
+    scrollbar = ttk.Scrollbar(scroll_frame, orient="vertical", command=canvas.yview)
+    scrollable_frame = ttk.Frame(canvas)
+    
+    scrollable_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+    canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+    canvas.configure(yscrollcommand=scrollbar.set)
+    
+    canvas.pack(side="left", fill="both", expand=True)
+    scrollbar.pack(side="right", fill="y")
+    
+    # Display each game
+    for i, game in enumerate(games):
+        game_frame = ttk.Frame(scrollable_frame, style="TFrame")
+        game_frame.pack(fill="x", padx=10, pady=5)
+        
+        # Game info
+        ttk.Label(game_frame, text=f"Game #{game['game_id']}", 
+                 style="yellow.TLabel", font=("Segoe UI", 10, "bold")).grid(row=0, column=0, sticky="w")
+        
+        ttk.Label(game_frame, text=f"CHICKEN winner: {game['winner_name']}", 
+                 style="white.TLabel").grid(row=1, column=0, sticky="w")
+        
+        ttk.Label(game_frame, text=f"DATE: {game['date_played']}", 
+                 style="white.TLabel").grid(row=2, column=0, sticky="w")
+        
+        ttk.Label(game_frame, text=f"Actions: {game['total_actions']}", 
+                 style="white.TLabel").grid(row=3, column=0, sticky="w")
+        
+        # View details button
+        details_btn = ttk.Button(game_frame, text="View Details", 
+                               command=lambda gid=game['game_id']: show_game_details(gid),
+                               style="Casino.TButton")
+        details_btn.grid(row=0, column=1, rowspan=2, padx=10)
+
+def load_game_history_from_db():
+    """Load game history from database"""
+    from db_connection import get_conn
+    from queries import SELECT_GAME_INFO
+    conn = get_conn()
+    games = []
+    try:
+        cur = conn.cursor()
+        cur.execute(SELECT_GAME_INFO)
+        
+        for row in cur.fetchall():
+            games.append({
+                'game_id': row[0],
+                'winner_name': row[1],
+                'date_played': row[2].strftime("%Y-%m-%d %H:%M"),
+                'total_actions': row[3]
+            })
+            
+    except Exception as e:
+        print(f"Error loading game history: {e}")
+    finally:
+        cur.close()
+        conn.close()
+    
+    return games
+
+def show_game_details(game_id):
+    """Show detailed view of a specific game"""
+    clear_content_frame()
+    
+    # Title
+    title_label = ttk.Label(content_frame, text=f"GAME #{game_id} DETAILS", 
+                           style="yellow.TLabel", font=("Segoe UI", 12, "bold"))
+    title_label.pack(pady=10)
+    
+    # Load game details
+    details = load_game_details_from_db(game_id)
+    
+    if not details:
+        ttk.Label(content_frame, text="Game details not found", style="white.TLabel").pack()
+        return
+    
+    # Game info
+    info_frame = ttk.Frame(content_frame)
+    info_frame.pack(pady=5, fill="x")
+    
+    ttk.Label(info_frame, text=f"Winner: {details['winner_name']}", style="white.TLabel").pack()
+    ttk.Label(info_frame, text=f"Date: {details['date_played']}", style="white.TLabel").pack()
+    
+    # Player actions
+    ttk.Label(content_frame, text="Player Actions:", style="white.TLabel").pack(anchor="w", pady=(10,0))
+    
+    for action in details['actions']:
+        action_text = f"{action['player_name']} {action['action']} (${action['amount']})"
+        ttk.Label(content_frame, text=action_text, style="white.TLabel").pack(anchor="w", padx=10)
+
+def load_game_details_from_db(game_id):
+    """Load detailed information for a specific game"""
+    from db_connection import get_conn
+    from queries import SELECT_GAME_DETAILS, SELECT_PLAY_DETAILS
+    conn = get_conn()
+    details = {}
+    try:
+        cur = conn.cursor()
+        
+        # Get basic game info
+        cur.execute(SELECT_GAME_DETAILS, (game_id,))
+        
+        game_info = cur.fetchone()
+        if game_info:
+            details['game_id'] = game_info[0]
+            details['winner_name'] = game_info[1]
+            details['date_played'] = game_info[2].strftime("%Y-%m-%d %H:%M")
+        else:
+            return {'actions': []}
+        # Get player actions
+        cur.execute(SELECT_PLAY_DETAILS, (game_id,))
+        
+        details['actions'] = []
+        for action, player_name, player_id, timestamp in cur.fetchall():
+            # Parse action string (ej: "bet:$100")
+            action_parts = action.split(':$')
+            details['actions'].append({
+                'player_name': f"#{player_id} : {player_name}",
+                'action': action_parts[0],
+                'amount': action_parts[1] if len(action_parts) > 1 else '0',
+                'timestamp' : timestamp.strftime("%H:%M:%S")
+            })
+            
+    except Exception as e:
+        print(f"Error loading game details: {e}")
+    finally:
+        cur.close()
+        conn.close()
+    
+    return details
 
 def exit_program():
     root.destroy()
-
-def modify_player_balance():
-    pass
-
-def show_player_info():
-    pass
-
-def delete_player():
-    pass
 
 def perform_action(action_name):
     """Execute player action and advance game state"""
@@ -437,7 +578,7 @@ def advance_turn():
     global current_player_index, current_game
 
     if not current_game or not current_game.is_active:
-        print("Juego terminado")
+        print("Finished game")
         return
     
     # Find next active player
@@ -492,10 +633,10 @@ def get_first_active_player_index():
     return 0
 
 def show_players():
-    """Mostrar información de todos los jugadores en content_frame"""
+    """Show all players info"""
     clear_content_frame()
     
-    title_label = ttk.Label(content_frame, text="TODOS LOS JUGADORES", 
+    title_label = ttk.Label(content_frame, text="All players", 
                            style="yellow.TLabel", font=("Segoe UI", 12, "bold"))
     title_label.pack(pady=10)
     
@@ -503,28 +644,80 @@ def show_players():
     
     if not players:
         no_players_label = ttk.Label(content_frame, 
-                                   text="No hay jugadores registrados", 
+                                   text="No players", 
                                    style="white.TLabel")
         no_players_label.pack(pady=10)
         return
     
     # Mostrar lista de jugadores
     for player in players:
-        player_text = f"{player.name} | Balance: ${player.balance} | Puntos: {player.points}"
+        player_text = f"{player.name} | Balance: ${player.balance} | Points: {player.points}"
         player_label = ttk.Label(content_frame, text=player_text, style="white.TLabel")
         player_label.pack(pady=2)
 
-def modify_player_balance():
-    """Form to add balance to player"""
-    clear_content_frame()
-    
-    pass
-
 def show_game_history():
     """Show game history"""
+    global current_game
+    
+    if not current_game:
+        messagebox.showinfo("Info", "No active game to show history")
+        return
+    
     clear_content_frame()
     
+    # Title
+    title_label = ttk.Label(content_frame, text="CURRENT GAME HISTORY", 
+                           style="yellow.TLabel", font=("Segoe UI", 12, "bold"))
+    title_label.pack(pady=10)
+
+def modify_player_balance():
     pass
+
+def show_player_info():
+    pass
+
+def delete_player():
+    pass
+    
+    
+    # Game info
+    info_frame = ttk.Frame(content_frame)
+    info_frame.pack(pady=5, fill="x")
+    
+    ttk.Label(info_frame, text=f"Game ID: {current_game.game_id}", style="white.TLabel").pack()
+    ttk.Label(info_frame, text=f"Pot: ${current_game.pot}", style="white.TLabel").pack()
+    ttk.Label(info_frame, text=f"Round: {['Pre-flop', 'Flop', 'Turn', 'River', 'Showdown'][current_game.current_round]}", 
+              style="white.TLabel").pack()
+    
+    # Community cards
+    ttk.Label(content_frame, text="Community Cards:", style="white.TLabel").pack(anchor="w", pady=(10,0))
+    cards_text = " ".join(str(card) for card in current_game.community_cards) if current_game.community_cards else "None yet"
+    ttk.Label(content_frame, text=cards_text, style="white.TLabel").pack(anchor="w")
+    
+    # Player actions history
+    ttk.Label(content_frame, text="Player Actions:", style="white.TLabel").pack(anchor="w", pady=(10,0))
+    
+    # Scroll
+    scroll_frame = ttk.Frame(content_frame)
+    scroll_frame.pack(fill="both", expand=True, pady=5)
+    
+    canvas = tk.Canvas(scroll_frame, bg="#333333", highlightthickness=0, height=200)
+    scrollbar = ttk.Scrollbar(scroll_frame, orient="vertical", command=canvas.yview)
+    scrollable_frame = ttk.Frame(canvas)
+    
+    scrollable_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+    canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+    canvas.configure(yscrollcommand=scrollbar.set)
+    
+    canvas.pack(side="left", fill="both", expand=True)
+    scrollbar.pack(side="right", fill="y")
+    
+    # Display actions
+    for i, action in enumerate(current_game.player_actions):
+        round_name = ['Pre-flop', 'Flop', 'Turn', 'River', 'Showdown'][action['round']]
+        action_text = f"{action['player'].name} {action['action'].upper()} ${action['amount']} ({round_name})"
+        ttk.Label(scrollable_frame, text=action_text, style="white.TLabel").pack(anchor="w", padx=5, pady=2)
+    
 
 # Define window
 root = tk.Tk()

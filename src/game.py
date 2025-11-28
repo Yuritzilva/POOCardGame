@@ -146,15 +146,22 @@ class Game:
         try:
             cur = conn.cursor()
             # using hand_id of current player
-            cur.execute(SELECT_HAND_ID, (self.game_id, player.id, hand_id, f"{action}:${amount}"))
+            cur.execute(SELECT_HAND_ID, (self.game_id, player.id))
             result = cur.fetchone()
-
+            
             hand_id = result[0] if result else None
 
-            cur.execute(INSERT_PLAY,(self.game_id, player.id, f"{action}:${amount}"))
+            if hand_id is None:
+                print(f"Error: can't find first hand_id for player {player.name}")
+                return
+            
+            play_action_str = f"{action}:${amount}"
+            cur.execute(INSERT_PLAY,(self.game_id, player.id, hand_id, play_action_str))
             conn.commit()
+            print(f"Saved playe: {player.name} - {play_action_str}")
         except Exception as e:
             print(f"Error saving play to DB: {e}")
+            conn.rollback()
         finally:
             cur.close()
             conn.close()

@@ -32,3 +32,42 @@ INSERT_CARDS_IN_HAND = "INSERT INTO PlayerHandCards (hand_id, card_id) VALUES (%
 
 #PLAYS QUERIES
 INSERT_PLAY = "INSERT INTO Plays (game_id, player_id, hand_id, play_action) VALUES (%s, %s, %s, %s)"
+
+#MULTIPLE TABLES
+SELECT_GAME_INFO = """
+SELECT 
+    g.game_id, 
+    p.player_name AS winner_name, 
+    g.date_played,
+    (
+        SELECT COUNT(*) 
+        FROM Plays 
+        WHERE game_id = g.game_id
+    ) AS total_actions
+FROM Game g
+JOIN Player p ON g.winner_id = p.player_id
+WHERE g.winner_id IS NOT NULL
+ORDER BY g.game_id DESC
+"""
+
+SELECT_GAME_DETAILS = """
+SELECT 
+    g.game_id, 
+    p.player_name, 
+    g.date_played
+FROM Game g
+JOIN Player p ON g.winner_id = p.player_id
+WHERE g.game_id = %s
+"""
+
+SELECT_PLAY_DETAILS = """
+SELECT 
+    pl.play_action, 
+    p.player_name, 
+    pl.player_id, 
+    pl.created_at
+FROM Plays pl
+JOIN Player p ON pl.player_id = p.player_id
+WHERE pl.game_id = %s
+ORDER BY pl.created_at
+"""
