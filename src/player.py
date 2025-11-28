@@ -1,9 +1,9 @@
 class Player:
-    def __init__(self, id_, name, initial_balance, is_bot=False):
+    def __init__(self, id_, name, initial_balance,  points = 0.00, is_bot=False):
         self.id = id_
         self.name = name
         self.balance = initial_balance
-        self.points = 0  
+        self.points = points
         self.folded = False 
         self.is_bot = is_bot
         self.hand = []  
@@ -90,8 +90,6 @@ class Player:
         conn = get_conn()
         try:
             cur = conn.cursor()
-            print(f"🔧 EJECUTANDO QUERY: {UPDATE_PLAYER_BALANCE}")
-            print(f"   Parámetros: balance={self.balance}, points={self.points}, id={self.id}")
             
             cur.execute(UPDATE_PLAYER_BALANCE, (self.balance, self.points, self.id))
             conn.commit()
@@ -114,7 +112,7 @@ class Player:
             cur = conn.cursor()
             cur.execute(ALL_PLAYERS)
             rows = cur.fetchall()
-            return [cls(row[0], row[1], float(row[2])) for row in rows]
+            return [cls(row[0], row[1], float(row[2]), float(row[3])) for row in rows]
         finally:
             cur.close()
             conn.close()

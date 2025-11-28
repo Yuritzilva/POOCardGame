@@ -171,7 +171,6 @@ def create_players():
     cancel_btn = ttk.Button(btn_frame, text="Cancel", 
                            command=lambda: clear_content_frame() or start_game())
     cancel_btn.grid(row=0, column=1, padx=5)
-    
 
 def start_game_with_players(player_vars):
     """Start game with current players"""
@@ -649,11 +648,36 @@ def show_players():
         no_players_label.pack(pady=10)
         return
     
-    # Mostrar lista de jugadores
-    for player in players:
-        player_text = f"{player.name} | Balance: ${player.balance} | Points: {player.points}"
-        player_label = ttk.Label(content_frame, text=player_text, style="white.TLabel")
-        player_label.pack(pady=2)
+    container = ttk.Frame(content_frame)
+    container.pack(fill="both", expand=True)
+
+    canvas = tk.Canvas(container, bg="#1a1a1a", highlightthickness=0)
+    scrollbar = ttk.Scrollbar(container, orient="vertical", command=canvas.yview)
+
+    scroll_frame = ttk.Frame(canvas)
+
+    scroll_frame.bind(
+        "<Configure>",
+        lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+    )
+
+    canvas.create_window((0, 0), window=scroll_frame, anchor="nw")
+    canvas.configure(yscrollcommand=scrollbar.set)
+
+    canvas.pack(side="left", fill="both", expand=True)
+    scrollbar.pack(side="right", fill="y")
+
+    # show players
+    for p in players:
+        text = f"{p.name} | Balance: ${p.balance} | Points: {p.points}"
+        
+        player_label = ttk.Label(
+            scroll_frame,
+            text=text,
+            style="white.TLabel",
+            padding=5
+        )
+        player_label.pack(anchor="w")
 
 def show_game_history():
     """Show game history"""
@@ -669,16 +693,219 @@ def show_game_history():
     title_label = ttk.Label(content_frame, text="CURRENT GAME HISTORY", 
                            style="yellow.TLabel", font=("Segoe UI", 12, "bold"))
     title_label.pack(pady=10)
-
+    
+    # Game info
+    info_frame = ttk.Frame(content_frame)
+    info_frame.pack(pady=5, fill="x")
+    
+    ttk.Label(info_frame, text=f"Game ID: {current_game.game_id}", style="white.TLabel").pack()
+    ttk.Label(info_frame, text=f"Pot: ${current_game.pot}", style="white.TLabel").pack()
+    ttk.Label(info_frame, text=f"Round: {['Pre-flop', 'Flop', 'Turn', 'River', 'Showdown'][current_game.current_round]}", 
+              style="white.TLabel").pack()
+    
+    # Community cards
+    ttk.Label(content_frame, text="Community Cards:", style="white.TLabel").pack(anchor="w", pady=(10,0))
+    cards_text = " ".join(str(card) for card in current_game.community_cards) if current_game.community_cards else "None yet"
+    ttk.Label(content_frame, text=cards_text, style="white.TLabel").pack(anchor="w")
+    
+    # Player actions history
+    ttk.Label(content_frame, text="Player Actions:", style="white.TLabel").pack(anchor="w", pady=(10,0))
+    
+    # Scroll
+    scroll_frame = ttk.Frame(content_frame)
+    scroll_frame.pack(fill="both", expand=True, pady=5)
+    
+    canvas = tk.Canvas(scroll_frame, bg="#333333", highlightthickness=0, height=200)
+    scrollbar = ttk.Scrollbar(scroll_frame, orient="vertical", command=canvas.yview)
+    scrollable_frame = ttk.Frame(canvas)
+    
+    scrollable_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+    canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+    canvas.configure(yscrollcommand=scrollbar.set)
+    
+    canvas.pack(side="left", fill="both", expand=True)
+    scrollbar.pack(side="right", fill="y")
+    
+    # Display actions
+    for i, action in enumerate(current_game.player_actions):
+        round_name = ['Pre-flop', 'Flop', 'Turn', 'River', 'Showdown'][action['round']]
+        action_text = f"{action['player'].name} {action['action'].upper()} ${action['amount']} ({round_name})"
+        ttk.Label(scrollable_frame, text=action_text, style="white.TLabel").pack(anchor="w", padx=5, pady=2)
+    
 def modify_player_balance():
     pass
 
 def show_player_info():
-    pass
+    """Display info of the current player."""
+    global current_player
+
+    clear_content_frame()
+
+    if current_player is None:
+        messagebox.showinfo("Info", "No player selected.")
+        return
+
+    # Load player info from DB
+    info = load_player_info_from_db(current_player.player_id)
+
+    if not info:
+        messagebox.showerror("Error", "Player info not found.")
+        return
+
+    # Title
+    title_label = ttk.Label(content_frame, text=f"PLAYER INFO", 
+                           style="yellow.TLabel", font=("Segoe UI", 12, "bold"))
+    title_label.pack(pady=10)
+
+    # Info frame
+    frame = ttk.Frame(content_frame)
+    frame.pack(fill="x", padx=10, pady=10)
+
+    ttk.Label(frame, text=f"ID: {info['id']}", style="white.TLabel").pack(anchor="w")
+    ttk.Label(frame, text=f"Name: {info['name']}", style="white.TLabel").pack(anchor="w")
+    ttk.Label(frame, text=f"Wins: {info['wins']}", style="white.TLabel").pack(anchor="w")
+
+def load_player_info_from_db(player_id):
+    from db_connection import get_conn
+    from queries import SELECT_PLAYER_INFO
+
+    conn = get_conn()
+    try:
+        cur = conn.cursor()
+        cur.execute(SELECT_PLAYER_INFO, (player_id,))
+        row = cur.fetchone()
+
+        if row:
+            return {
+                "id": row[0],
+                "name": row[1],
+                "wins": row[2]
+            }
+
+    except Exception as e:
+        print("Error loading player info:", e)
+    finally:
+        cur.close()
+        conn.close()
+
+    return None
+
+def pick_single_player(callback):
+    clear_content_frame()
+
+    title_label = ttk.Label(content_frame, text="Select a player",
+                           style="yellow.TLabel", font=("Segoe UI", 12, "bold"))
+    title_label.pack(pady=10)
+
+    players = load_players_from_db()
+
+    if not players:
+        ttk.Label(content_frame, text="No players in database.",
+                  style="white.TLabel").pack()
+        return
+
+    picker_frame = ttk.Frame(content_frame)
+    picker_frame.pack(fill="both", expand=True, padx=10, pady=10)
+
+    picker_frame.grid_columnconfigure(0, weight=1)
+    picker_frame.grid_columnconfigure(1, weight=0)
+    picker_frame.grid_rowconfigure(0, weight=1)
+
+    scroll_frame = ttk.Frame(picker_frame)
+    scroll_frame.grid(row=0, column=0, sticky="nsew")
+
+    canvas = tk.Canvas(scroll_frame, bg="#333333", highlightthickness=0)
+    scrollbar = ttk.Scrollbar(scroll_frame, orient="vertical", command=canvas.yview)
+    scrollable_frame = ttk.Frame(canvas)
+
+    scrollable_frame.bind(
+        "<Configure>",
+        lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+    )
+
+    canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+    canvas.configure(yscrollcommand=scrollbar.set)
+
+    canvas.pack(side="left", fill="both", expand=True)
+    scrollbar.pack(side="right", fill="y")
+
+    player_var = tk.IntVar(value=-1)
+
+    for player in players:
+        rb = ttk.Radiobutton(
+            scrollable_frame,
+            text=f"{player.name} (${player.balance})",
+            variable=player_var,
+            value=player.id,
+            style="White.TRadiobutton"
+        )
+        rb.pack(anchor="w", padx=10, pady=4)
+
+    btn_frame = ttk.Frame(picker_frame)
+    btn_frame.grid(row=0, column=1, sticky="nse")
+
+    def confirm():
+        pid = player_var.get()
+        if pid == -1:
+            messagebox.showwarning("Warning", "Select a player first")
+            return
+        callback(pid)
+
+    start_btn = ttk.Button(btn_frame, text="Delete",
+                           command=confirm, style="Casino.TButton")
+    start_btn.pack(pady=5)
+
+    cancel_btn = ttk.Button(btn_frame, text="Cancel",
+                            command=clear_content_frame, style="Casino.TButton")
+    cancel_btn.pack(pady=5)
 
 def delete_player():
-    pass
-    
+    def _delete(pid):
+        from db_connection import get_conn
+        from queries import DELETE_PLAY, UPDATE_GAME_WINNER, DELETE_PLAYER, DELETE_HAND, DELETE_PHC
+        if not messagebox.askyesno("Confirm",
+                                   "Are you sure you want to delete this player and all its data?"):
+            return
+
+        if not messagebox.askyesno("Final warning",
+                                   "This action cannot be undone. Delete anyway?"):
+            return
+
+        try:
+            conn = get_conn()
+            cur = conn.cursor()
+            
+            #Delete player hands
+            # 1) PlayerHandCards
+            cur.execute(DELETE_PHC, (pid,))
+
+            # Delete plays
+            cur.execute(DELETE_PLAY , (pid,))
+
+            #Delete hand
+            cur.execute(DELETE_HAND, (pid,))
+
+            # Update games, player is null
+            cur.execute(UPDATE_GAME_WINNER , (pid,))
+
+            # Delete player
+            cur.execute(DELETE_PLAYER , (pid,))
+
+            conn.commit()
+
+            messagebox.showinfo("Success", "Player deleted successfully")
+            clear_content_frame()
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Could not delete player:\n{e}")
+
+        finally:
+            cur.close()
+            conn.close()
+
+    pick_single_player(_delete)
+
+
     
     # Game info
     info_frame = ttk.Frame(content_frame)
