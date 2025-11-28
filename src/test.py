@@ -324,6 +324,57 @@ def test_all_combinations():
         else:
             print(f"failed detection {test['name']}")
 
+def test_player_management():
+    """Player testing"""
+    print("=== TEST: Player Management ===")
+    try:
+        from player import Player
+        from card import Card
+        
+        # Create player
+        player = Player.set_player("YURIIIIIIIII", 1000.00)
+        print(f"Created player as test: {player.name} - Balance: ${player.balance}")
+        
+        # make a bet
+        bet_amount = player.place_bet(100)
+        print(f"{player.name} made a bet\n Bet amount: ${bet_amount} - Current balance: ${player.balance}")
+        assert player.balance == 900.00
+        assert player.current_bet == 100
+        
+        # get cards
+        card1 = Card(1, "A", "Hearts")
+        card2 = Card(2, "K", "Spades")
+        player.receive_card(card1)
+        player.receive_card(card2)
+        print(f"Recieved cards: {player}")
+        
+        assert len(player.hand) == 2
+        assert str(card1) in str(player)
+        
+        # Fold
+        player.fold()
+        print(f"{player.name} has folded: {player.folded}")
+        assert player.folded == True
+        
+        # Reset
+        player.reset_for_new_round()
+        print(f"RESET: {len(player.hand)} cards, folded={player.folded}")
+        assert len(player.hand) == 0
+        assert player.folded == False
+        
+        # Add winnings
+        player.add_winnings(500, 100)
+        print(f"winnings: Balance=${player.balance}, points = {player.points}")
+        assert player.balance == 1400.00
+        
+        print("All test passed")
+        
+    except Exception as e:
+        print(f"Error in test_player_management: {e}")
+        import traceback
+        traceback.print_exc()
+    
+
 def run_tests():
     """Ejecute tests"""
     print("Executing...\n")
@@ -334,9 +385,10 @@ def run_tests():
     #test_deck_shuffling()
     #test_card_dealing()
     #test_hand_management()
-    test_gamerule_basic()
+    #test_gamerule_basic()
     #test_gamerule_advanced()
     #test_all_combinations()
+    test_player_management()
 
     print("Test completed")
 

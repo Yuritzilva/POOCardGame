@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS Player (
     player_id INT AUTO_INCREMENT PRIMARY KEY,
     player_name VARCHAR(50) NOT NULL,
     player_balance DECIMAL(10,2) DEFAULT 100.00,
+    player_points DECIMAL(10,2) DEFAULT 0.00,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
