@@ -21,6 +21,16 @@ INSERT_PLAYER = "INSERT INTO Player (player_name, player_balance) VALUES (%s, %s
 UPDATE_PLAYER_BALANCE = "UPDATE Player SET player_balance = %s, player_points = %s WHERE player_id = %s"
 ALL_PLAYERS = "SELECT player_id, player_name, player_balance, player_points FROM Player"
 DELETE_PLAYER = "DELETE FROM Player WHERE player_id = %s"
+PLAYER_FULL_INFO = """SELECT 
+    p.player_name,
+    p.player_balance,
+    p.player_points,
+    COUNT(g.game_id) AS wins,
+    (SELECT COUNT(*) FROM Hand h WHERE h.player_id = p.player_id) AS total_hands
+FROM Player p
+LEFT JOIN Game g ON g.winner_id = p.player_id
+WHERE p.player_id = %s;
+"""
 #GAME QUERIES
 START_GAME = "INSERT INTO Game () VALUES ()"
 ADD_WINNER = "UPDATE Game SET winner_id = %s WHERE game_id = %s"

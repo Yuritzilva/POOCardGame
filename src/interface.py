@@ -733,37 +733,199 @@ def show_game_history():
         ttk.Label(scrollable_frame, text=action_text, style="white.TLabel").pack(anchor="w", padx=5, pady=2)
     
 def modify_player_balance():
-    pass
-
-def show_player_info():
-    """Display info of the current player."""
-    global current_player
-
+    """Modify current player's balance by adding amount"""
+    global current_game, current_player_index
+    
     clear_content_frame()
-
-    if current_player is None:
-        messagebox.showinfo("Info", "No player selected.")
-        return
-
-    # Load player info from DB
-    info = load_player_info_from_db(current_player.player_id)
-
-    if not info:
-        messagebox.showerror("Error", "Player info not found.")
-        return
-
+    
     # Title
-    title_label = ttk.Label(content_frame, text=f"PLAYER INFO", 
+    title_label = ttk.Label(content_frame, text="MODIFY PLAYER BALANCE", 
                            style="yellow.TLabel", font=("Segoe UI", 12, "bold"))
     title_label.pack(pady=10)
+    
+    if not current_game:
+        ttk.Label(content_frame, text="No active game - no current player", 
+                 style="white.TLabel").pack(pady=10)
+        
+        back_btn = ttk.Button(content_frame, text="Back", 
+                             command=clear_content_frame)
+        back_btn.pack(pady=10)
+        return
+    
+    current_player = current_game.players[current_player_index]
+    
+    info_frame = ttk.Frame(content_frame)
+    info_frame.pack(pady=10)
+    
+    ttk.Label(info_frame, text=f"Player: {current_player.name}", 
+             style="white.TLabel", font=("Segoe UI", 11, "bold")).grid(row=0, column=0, sticky="w", pady=2)
+    
+    ttk.Label(info_frame, text=f"Current Balance: ${current_player.balance}", 
+             style="white.TLabel").grid(row=1, column=0, sticky="w", pady=2)
+    
+    form_frame = ttk.Frame(content_frame)
+    form_frame.pack(pady=20)
+    
+    amount_label = ttk.Label(form_frame, text="Amount to add ($):", style="white.TLabel")
+    amount_label.grid(row=0, column=0, sticky="w", padx=5, pady=5)
+    
+    amount_entry = ttk.Entry(form_frame, width=15, font=("Segoe UI", 10))
+    amount_entry.grid(row=0, column=1, padx=5, pady=5)
+    amount_entry.focus()
+    
+    btn_frame = ttk.Frame(content_frame)
+    btn_frame.pack(pady=10)
+    
+    def add_balance():
+        """Add amount to player's balance"""
+        try:
+            amount = float(amount_entry.get().strip())
+            
+            # Validations
+            if amount <= 0:
+                messagebox.showerror("Error", "Amount must be positive")
+                return
+            
+            # Calculate new balance
+            new_balance = current_player.balance + amount
+            
+            # update
+            current_player.balance = new_balance
+            
+            # Save in DB
+            from db_connection import get_conn
+            from queries import UPDATE_PLAYER_BALANCE
+            
+            conn = get_conn()
+            try:
+                cur = conn.cursor()
+                # Update and keep current points
+                cur.execute(UPDATE_PLAYER_BALANCE, (new_balance, current_player.points, current_player.id))
+                conn.commit()
+                
+                # Message
+                messagebox.showinfo("Success", 
+                                  f"Added ${amount} to {current_player.name}'s balance\n"
+                                  f"New balance: ${new_balance}")
+                
+                # update display
+                if current_game and current_game.is_active:
+                    update_game_display()
+                
+                # Clear
+                clear_content_frame()
+                
+            except Exception as e:
+                messagebox.showerror("Database Error", f"Could not update balance: {e}")
+                conn.rollback()
+            finally:
+                cur.close()
+                conn.close()
+                
+        except ValueError:
+            messagebox.showerror("Error", "Please enter a valid number")
+    
+    # Butons
+    add_btn = ttk.Button(btn_frame, text="Add Amount", 
+                        command=add_balance, style="Casino.TButton")
+    add_btn.grid(row=0, column=0, padx=5)
+    
+    cancel_btn = ttk.Button(btn_frame, text="Cancel", 
+                           command=clear_content_frame)
+    cancel_btn.grid(row=0, column=2, padx=5)
+    
+def show_player_info():
+    """Show information of current player in the game"""
+    global current_game, current_player_index
+    
+    clear_content_frame()
+    
+    # Title
+    title_label = ttk.Label(content_frame, text="CURRENT PLAYER INFORMATION", 
+                           style="yellow.TLabel", font=("Segoe UI", 12, "bold"))
+    title_label.pack(pady=10)
+    
+    if not current_game:
+        ttk.Label(content_frame, text="No active game - no current player", 
+                 style="white.TLabel").pack(pady=10)
+        return
+    
+    current_player = current_game.players[current_player_index]
+    
+    # Mostrar información básica del jugador actual
+    info_frame = ttk.Frame(content_frame)
+    info_frame.pack(pady=10)
+    
+    ttk.Label(info_frame, text=f"Player: {current_player.name}", 
+             style="white.TLabel", font=("Segoe UI", 11, "bold")).grid(row=0, column=0, sticky="w", pady=2)
+    
+    ttk.Label(info_frame, text=f"Balance: ${current_player.balance}", 
+             style="white.TLabel").grid(row=1, column=0, sticky="w", pady=2)
+    
+    ttk.Label(info_frame, text=f"Points: {current_player.points}", 
+             style="white.TLabel").grid(row=2, column=0, sticky="w", pady=2)
+    
+    ttk.Label(info_frame, text=f"Status: {'FOLDED' if current_player.folded else 'ACTIVE'}", 
+             style="white.TLabel").grid(row=3, column=0, sticky="w", pady=2)
+    
+    ttk.Label(info_frame, text=f"Current Bet: ${current_player.current_bet}", 
+             style="white.TLabel").grid(row=4, column=0, sticky="w", pady=2)
+    
+    ttk.Label(info_frame, text=f"Total Bet: ${current_player.total_bet}", 
+             style="white.TLabel").grid(row=5, column=0, sticky="w", pady=2)
+    
+    # Cards
+    if not current_player.folded and current_player.hand:
+        ttk.Label(info_frame, text="Current Hand:", 
+                 style="white.TLabel", font=("Segoe UI", 10, "bold")).grid(row = 6, column=0, sticky="w", pady=2)
+        
+        cards_text = " ".join(str(card) for card in current_player.hand)
+        ttk.Label(info_frame, text=cards_text, 
+                 style="white.TLabel", font=("Consolas", 12)).grid(row = 7, column=0, sticky="w", pady=2)
+    
+    
+    from db_connection import get_conn
+    from queries import PLAYER_FULL_INFO
+    
+    conn = get_conn()
+    try:
+        cur = conn.cursor()
+        cur.execute(PLAYER_FULL_INFO, (current_player.id,))
+        result = cur.fetchone()
+        
+        if result:
+            player_name, balance, points, wins, total_hands = result
+            
+            ttk.Label(content_frame, text="FULL STATISTICS", 
+                     style="yellow.TLabel", font=("Segoe UI", 12, "bold")).pack(pady=10)
+            
+            stats_frame = ttk.Frame(content_frame)
+            stats_frame.pack(pady=10)
+            
+            ttk.Label(stats_frame, text=f"Balance: ${balance}", 
+                     style="white.TLabel").grid(row=0, column=0, sticky="w", pady=2)
+            
+            ttk.Label(stats_frame, text=f"Points: {points}", 
+                     style="white.TLabel").grid(row=1, column=0, sticky="w", pady=2)
+            
+            ttk.Label(stats_frame, text=f"WINS: {wins}", 
+                     style="white.TLabel").grid(row=2, column=0, sticky="w", pady=2)
+            
+            ttk.Label(stats_frame, text=f"Hands: {total_hands}", 
+                     style="white.TLabel").grid(row=3, column=0, sticky="w", pady=2)
+            
+            # Calcular win rate
+            win_rate = (wins / total_hands * 100) if total_hands > 0 else 0
+            ttk.Label(stats_frame, text=f"Win rate: {win_rate:.1f}%", 
+                     style="white.TLabel").grid(row=4, column=0, sticky="w", pady=2)
+            
+    except Exception as e:
+        ttk.Label(content_frame, text=f"Error loading statistics: {e}", 
+                 style="white.TLabel").pack(pady=5)
+    finally:
+        cur.close()
+        conn.close()
 
-    # Info frame
-    frame = ttk.Frame(content_frame)
-    frame.pack(fill="x", padx=10, pady=10)
-
-    ttk.Label(frame, text=f"ID: {info['id']}", style="white.TLabel").pack(anchor="w")
-    ttk.Label(frame, text=f"Name: {info['name']}", style="white.TLabel").pack(anchor="w")
-    ttk.Label(frame, text=f"Wins: {info['wins']}", style="white.TLabel").pack(anchor="w")
 
 def load_player_info_from_db(player_id):
     from db_connection import get_conn
